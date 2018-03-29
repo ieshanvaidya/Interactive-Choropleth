@@ -9,6 +9,10 @@ from matplotlib.colors import Normalize
 from descartes import PolygonPatch
 import os
 import Levenshtein
+from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper
+from bokeh.palettes import Reds6 as palette
+from bokeh.plotting import figure, save
+from bokeh.resources import CDN
 
 def createStateShp(india_shp, state) :
     '''
@@ -160,5 +164,33 @@ def staticPlot(m, kind, df_data) :
     pc = PatchCollection(df.patch, match_original = False, zorder = 2)
 
     pc.set(array = df.iloc[:, 2].get_values(), cmap='Reds') # impose color map onto patch collection
-    fig.colorbar(pc, label="TEMP")  # Draw Colorbar and display the measure
+    fig.colorbar(pc, label=df.columns[2], shrink = 0.9)  # Draw Colorbar and display the measure
     ax.add_collection(pc)                   # add patchcollection to axis
+
+def interactivePlot(kind, df_data) :
+    '''
+
+    '''
+    if kind == 'india' :
+        shp_file = d + '\\maps\\india\\india.shp'
+    elif kind == 'maharashtra' :
+        shp_file = d + '\\maps\\maharashtra\\maharashtra.shp'
+    else :
+        raise NameError("Please enter one of 'india' or 'maharashtra' as input for kind.")
+
+    if kind == 'india' :
+        key = 'ST_NM'
+    elif kind == 'maharashtra' :
+        key = 'DISTRICT'
+    else :
+        raise NameError("Please enter one of 'india' or 'maharashtra' as input for kind.")
+
+    shp = fiona.open(shp_file)
+    # Extract features from shapefile
+    obj_name = [ feat["properties"][key] for feat in shp]
+    obj_x = [ [x[0] for x in feat["geometry"]["coordinates"][0]] for feat in shp]
+    obj_y = [ [y[1] for y in feat["geometry"]["coordinates"][0]] for feat in shp]
+    obj_xy = [ [ xy for xy in feat["geometry"]["coordinates"][0]] for feat in shp] 
+    obj_poly = [ Polygon(xy) for xy in district_xy] # coords to Polygon
+
+    data = df_data.iloc[:, 2].get_values()
