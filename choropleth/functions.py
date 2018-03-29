@@ -3,16 +3,19 @@ from mpl_toolkits.basemap import Basemap
 import pandas as pd
 from shapely.geometry import Polygon, Point, MultiPoint, MultiPolygon
 from shapely.prepared import prep
+from shapely.geometry import shape, mapping
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize
 from descartes import PolygonPatch
 import os
 import Levenshtein
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper
-from bokeh.palettes import Reds6 as palette
+from bokeh.io import show, output_file
+from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, LinearColorMapper, ColorBar, BasicTicker, AdaptiveTicker
+from bokeh.palettes import YlOrRd, RdYlBu, Inferno, Oranges
 from bokeh.plotting import figure, save
 from bokeh.resources import CDN
+import numpy as np
 
 def createStateShp(india_shp, state) :
     '''
@@ -167,10 +170,46 @@ def staticPlot(m, kind, df_data) :
     fig.colorbar(pc, label=df.columns[2], shrink = 0.9)  # Draw Colorbar and display the measure
     ax.add_collection(pc)                   # add patchcollection to axis
 
-def interactivePlot(kind, df_data) :
+
+
+def getShpXY(shp) :
     '''
+    Gives the x, y lists required by Bokeh to plot.
+    Shape file may have 2 types : Polygon and MultiPolygon
+    Multipolygons contain lists of polygon objects. They need to be separated by nan values to render.
+    Check : https://automating-gis-processes.github.io/Lesson5-interactive-map-Bokeh-advanced-plotting.html
 
     '''
+    obj_x, obj_y, obj_xy = [], [], []
+    for (ind, obj) in enumerate(shp) :
+        #Entered individual state/district
+        parts = obj['geometry']['coordinates']
+        l = len(parts)
+        if obj['geometry']['type'] == 'Polygon' :
+            x_list = [item[0] for item in parts[0]]
+            y_list = [item[1] for item in parts[0]]
+            obj_x.append(x_list)
+            obj_y.append(y_list)
+        else :
+            x_list = []
+            y_list = []
+            for (i, subparts) in enumerate(parts) :
+                for (j, item) in enumerate(subparts[0]) :
+                    #print('ind, i, j : {}, {}, {}'.format(ind, i, j))
+                    x_list.append(item[0])
+                    y_list.append(item[1])
+                x_list.append(np.nan)
+                y_list.append(np.nan)
+            obj_x.append(x_list)
+            obj_y.append(y_list)
+    return(obj_x, obj_y)
+
+def interactivePlot(kind, df_data) :
+    '''
+    Interactive plot in Bokeh
+    '''
+    d = os.path.dirname(os.getcwd())
+
     if kind == 'india' :
         shp_file = d + '\\maps\\india\\india.shp'
     elif kind == 'maharashtra' :
@@ -180,17 +219,55 @@ def interactivePlot(kind, df_data) :
 
     if kind == 'india' :
         key = 'ST_NM'
+        plotkey = 'State'
     elif kind == 'maharashtra' :
         key = 'DISTRICT'
+        plotkey = 'District'
     else :
         raise NameError("Please enter one of 'india' or 'maharashtra' as input for kind.")
 
     shp = fiona.open(shp_file)
     # Extract features from shapefile
     obj_name = [ feat["properties"][key] for feat in shp]
-    obj_x = [ [x[0] for x in feat["geometry"]["coordinates"][0]] for feat in shp]
-    obj_y = [ [y[1] for y in feat["geometry"]["coordinates"][0]] for feat in shp]
-    obj_xy = [ [ xy for xy in feat["geometry"]["coordinates"][0]] for feat in shp] 
-    obj_poly = [ Polygon(xy) for xy in district_xy] # coords to Polygon
+    obj_name = [closestMatch(name, kind) for name in obj_name]
 
-    data = df_data.iloc[:, 2].get_values()
+    #Get the x, y lists needed by Bokeh to plot
+    obj_x, obj_y = getShpXY(shp)
+
+    #obj_xy = [ [ xy for xy in obj["geometry"]["coordinates"][0]] for obj in shp]
+    #obj_poly = [ Polygon(xy) for xy in obj_xy] # coords to Polygon
+
+    #Map state/district in data to standard names
+    f = lambda x : closestMatch(x, kind)
+    dfd = df_data.copy()
+    dfd.iloc[:, 0] = dfd.iloc[:, 0].apply(f)
+
+    #Get the required data values to plot in Bokeh
+    data = [dfd[dfd.iloc[:, 0] == name].iloc[:, 1].get_values()[0] for name in obj_name]
+
+    #custom_colors = ['#f2f2f2', '#fee5d9', '#fcbba1', '#fc9272', '#fb6a4a', '#de2d26']
+    
+    color_mapper = LinearColorMapper(palette="Greys256", low = min(data), high = max(data))    
+    source = ColumnDataSource(data=dict(
+        x=obj_x, y=obj_y,
+        name=obj_name, rate=data,
+    ))
+
+    TOOLS = "pan,wheel_zoom,reset,hover,save"
+    p = figure(
+        title=dfd.columns[1], tools=TOOLS,
+        x_axis_location=None, y_axis_location=None
+    )
+    #color_bar = ColorBar(color_mapper=color_mapper, label_standoff=12, border_line_color=None, ticker = AdaptiveTicker(), location=(0,0))
+    p.grid.grid_line_color = None
+    p.patches('x', 'y', source=source,
+            fill_color={'field': 'rate', 'transform': color_mapper},
+            fill_alpha=0.8, line_color="black", line_width=0.3)
+
+    hover = p.select_one(HoverTool)
+    hover.point_policy = "follow_mouse"
+    hover.tooltips = [(plotkey, "@name"),(dfd.columns[1], "@rate")]
+    
+    #p.add_layout(color_bar, 'left')
+    #output_file("kvb_interactive.html")
+    show(p)
