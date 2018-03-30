@@ -6,16 +6,19 @@ from shapely.prepared import prep
 from shapely.geometry import shape, mapping
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
-from matplotlib.colors import Normalize
+#from matplotlib.colors import Normalize
 from descartes import PolygonPatch
-import os
+from os.path import dirname
+from os import getcwd
 import Levenshtein
 from bokeh.io import show, output_file
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, LinearColorMapper, ColorBar, BasicTicker, AdaptiveTicker
-from bokeh.palettes import YlOrRd, RdYlBu, Inferno, Oranges
+from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, LinearColorMapper
+#from bokeh.models import ColorBar, BasicTicker, AdaptiveTicker
+#from bokeh.palettes import YlOrRd, RdYlBu, Inferno, Oranges
 from bokeh.plotting import figure, save
 from bokeh.resources import CDN
-import numpy as np
+from bokeh.embed import file_html
+from numpy import nan
 
 def createStateShp(india_shp, state) :
     '''
@@ -40,7 +43,7 @@ def createMap(name) :
     name : india/state name as string
            eg. 'india', 'maharashtra'
     '''
-    d = os.path.dirname(os.getcwd())
+    d = dirname(getcwd())
 
     if name == 'india' :
         shp_file = d + '\\maps\\india\\india.shp'
@@ -198,8 +201,8 @@ def getShpXY(shp) :
                     #print('ind, i, j : {}, {}, {}'.format(ind, i, j))
                     x_list.append(item[0])
                     y_list.append(item[1])
-                x_list.append(np.nan)
-                y_list.append(np.nan)
+                x_list.append(nan)
+                y_list.append(nan)
             obj_x.append(x_list)
             obj_y.append(y_list)
     return(obj_x, obj_y)
@@ -208,7 +211,7 @@ def interactivePlot(kind, df_data) :
     '''
     Interactive plot in Bokeh
     '''
-    d = os.path.dirname(os.getcwd())
+    d = dirname(getcwd())
 
     if kind == 'india' :
         shp_file = d + '\\maps\\india\\india.shp'
@@ -253,7 +256,7 @@ def interactivePlot(kind, df_data) :
         name=obj_name, rate=data,
     ))
 
-    TOOLS = "pan,wheel_zoom,reset,hover,save"
+    TOOLS = "pan,wheel_zoom,reset,hover"
     p = figure(
         title=dfd.columns[1], tools=TOOLS,
         x_axis_location=None, y_axis_location=None
@@ -269,5 +272,8 @@ def interactivePlot(kind, df_data) :
     hover.tooltips = [(plotkey, "@name"),(dfd.columns[1], "@rate")]
     
     #p.add_layout(color_bar, 'left')
-    #output_file("kvb_interactive.html")
-    show(p)
+    #output_file("test.html")
+    html = file_html(p, CDN, "my plot")
+    with open('temp.html', 'w') as f :
+        f.write(html)
+    #show(p)
