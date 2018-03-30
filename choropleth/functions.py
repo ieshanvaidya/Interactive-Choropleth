@@ -17,7 +17,6 @@ from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, LinearColo
 #from bokeh.palettes import YlOrRd, RdYlBu, Inferno, Oranges
 from bokeh.plotting import figure, save
 from bokeh.resources import CDN
-from bokeh.embed import file_html
 from numpy import nan
 
 def createStateShp(india_shp, state) :
@@ -174,13 +173,23 @@ def staticPlot(m, kind, df_data) :
     ax.add_collection(pc)                   # add patchcollection to axis
 
 
+def computeSkipRate(length, keep_ratio) :
+    #Keep polygons with few points intact
+    if length < 20 :
+        skip_rate = 1
+    else :
+        skip_rate = int(length / (length * keep_ratio))
+    return(skip_rate)
 
-def getShpXY(shp) :
+def getShpXY(shp, keep_ratio) :
     '''
     Gives the x, y lists required by Bokeh to plot.
     Shape file may have 2 types : Polygon and MultiPolygon
     Multipolygons contain lists of polygon objects. They need to be separated by nan values to render.
     Check : https://automating-gis-processes.github.io/Lesson5-interactive-map-Bokeh-advanced-plotting.html
+    
+    skip_rate : Skips over points in the polygon (Helps reduce the html size if level of detail is not required)
+                eg. keep_ratio = 0.5   ==>   Keep only half of the points in the polygon [Skip alternate points]
 
     '''
     obj_x, obj_y, obj_xy = [], [], []
@@ -189,18 +198,27 @@ def getShpXY(shp) :
         parts = obj['geometry']['coordinates']
         l = len(parts)
         if obj['geometry']['type'] == 'Polygon' :
-            x_list = [item[0] for item in parts[0]]
-            y_list = [item[1] for item in parts[0]]
+            skip_rate = computeSkipRate(len(parts[0]), keep_ratio)
+            x_list = [parts[0][i][0] for i in range(0, len(parts[0]), skip_rate)]
+            y_list = [parts[0][i][1] for i in range(0, len(parts[0]), skip_rate)]
+            #x_list = [item[0] for item in parts[0]]
+            #y_list = [item[1] for item in parts[0]]
             obj_x.append(x_list)
             obj_y.append(y_list)
         else :
             x_list = []
             y_list = []
             for (i, subparts) in enumerate(parts) :
-                for (j, item) in enumerate(subparts[0]) :
-                    #print('ind, i, j : {}, {}, {}'.format(ind, i, j))
-                    x_list.append(item[0])
-                    y_list.append(item[1])
+                #x_list = [subparts[0][l][0] for l in range(0, len(subparts[0]), 2)]
+                #y_list = [subparts[0][l][1] for l in range(0, len(subparts[0]), 2)]
+                skip_rate = computeSkipRate(len(subparts[0]), keep_ratio)
+                for l in range(0, len(subparts[0]), skip_rate) :
+                    x_list.append(subparts[0][l][0])
+                    y_list.append(subparts[0][l][1])
+
+                #for (j, item) in enumerate(subparts[0]) :
+                #    x_list.append(item[0])
+                #    y_list.append(item[1])
                 x_list.append(nan)
                 y_list.append(nan)
             obj_x.append(x_list)
@@ -235,7 +253,7 @@ def interactivePlot(kind, df_data) :
     obj_name = [closestMatch(name, kind) for name in obj_name]
 
     #Get the x, y lists needed by Bokeh to plot
-    obj_x, obj_y = getShpXY(shp)
+    obj_x, obj_y = getShpXY(shp, 0.15)
 
     #obj_xy = [ [ xy for xy in obj["geometry"]["coordinates"][0]] for obj in shp]
     #obj_poly = [ Polygon(xy) for xy in obj_xy] # coords to Polygon
@@ -256,7 +274,7 @@ def interactivePlot(kind, df_data) :
         name=obj_name, rate=data,
     ))
 
-    TOOLS = "pan,wheel_zoom,reset,hover"
+    TOOLS = "pan,reset,hover" #wheel_zoom,save
     p = figure(
         title=dfd.columns[1], tools=TOOLS,
         x_axis_location=None, y_axis_location=None
@@ -273,7 +291,4 @@ def interactivePlot(kind, df_data) :
     
     #p.add_layout(color_bar, 'left')
     #output_file("test.html")
-    html = file_html(p, CDN, "my plot")
-    with open('temp.html', 'w') as f :
-        f.write(html)
-    #show(p)
+    show(p)
