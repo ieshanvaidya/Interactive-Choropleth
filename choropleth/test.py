@@ -4,7 +4,7 @@ name = 'india'
 
 m = functions.createMap(name)
 
-df_data = functions.pd.read_csv('test.csv')
+df_data = functions.pd.read_csv('test2.csv')
 
 #functions.staticPlot(m, name, df_data)
 

@@ -107,14 +107,15 @@ def closestMatch(obj_name, kind) :
                  'Satara', 'Sindhudurg', 'Solapur', 'Thane', 'Wardha', 'Washim', 'Yavatmal']
 
     if kind == 'india' :
-        ratio_dict = {obj : Levenshtein.ratio(obj_name, obj) for obj in states}
+        ratio_dict = {obj : Levenshtein.ratio(str.lower(obj_name), str.lower(obj)) for obj in states}
         if obj_name == 'Telangana' :
             ratio_dict['Andhra Pradesh'] = 1
+
+        match = max(ratio_dict.keys(), key = (lambda key:ratio_dict[key]))
+    elif kind == 'maharashtra' :
+        ratio_dict = {obj : Levenshtein.ratio(str.lower(obj_name), str.lower(obj)) for obj in districts}
         match = max(ratio_dict.keys(), key = (lambda key:ratio_dict[key]))
 
-    elif kind == 'maharashtra' :
-        ratio_dict = {obj : Levenshtein.ratio(obj_name, obj) for obj in districts}
-        match = max(ratio_dict.keys(), key = (lambda key:ratio_dict[key]))
     else :
         raise NameError("Please enter one of 'india' or 'maharashtra' as input for kind.")
 
