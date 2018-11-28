@@ -1,6 +1,6 @@
 # Interactive-Choropleth
 
-##### Example Plot : Population of India (Census 2011)
+##### Example Plot : Population of India (Census 2011) [Not interactive due to markdown limitations]
 
 <img src="https://github.com/ieshanvaidya/Interactive-Choropleth/blob/master/choropleth/map.png" alt="drawing" width="600"/>
 
