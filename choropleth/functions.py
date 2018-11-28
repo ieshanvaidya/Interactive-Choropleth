@@ -11,7 +11,7 @@ from descartes import PolygonPatch
 from os.path import dirname
 from os import getcwd
 import Levenshtein
-from bokeh.io import show, output_file
+from bokeh.io import show, output_file, export_png
 from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, LinearColorMapper
 #from bokeh.models import ColorBar, BasicTicker, AdaptiveTicker
 #from bokeh.palettes import YlOrRd, RdYlBu, Inferno, Oranges
@@ -27,7 +27,7 @@ def createStateShp(india_shp, state) :
         # The output has the same schema
         output_schema = input.schema.copy()
         # write a new shapefile
-        with fiona.open('maps\\' + state , 'w', 'ESRI Shapefile', output_schema, crs=input.crs) as output:
+        with fiona.open('maps/' + state , 'w', 'ESRI Shapefile', output_schema, crs=input.crs) as output:
             #Select the required state using a filter
             selection = filter(lambda f: f['properties']['ST_NM']==state, input)
             for elem in selection: 
@@ -45,9 +45,9 @@ def createMap(name) :
     d = dirname(getcwd())
 
     if name == 'india' :
-        shp_file = d + '\\maps\\india\\india.shp'
+        shp_file = d + '/maps/india/india.shp'
     elif name == 'maharashtra' :
-        shp_file = d + '\\maps\\maharashtra\\maharashtra.shp'
+        shp_file = d + '/maps/maharashtra/maharashtra.shp'
     else :
         print('Name not supported as of yet')
         return(None)
@@ -233,9 +233,9 @@ def interactivePlot(kind, df_data) :
     d = dirname(getcwd())
 
     if kind == 'india' :
-        shp_file = d + '\\maps\\india\\india.shp'
+        shp_file = d + '/maps/india/india.shp'
     elif kind == 'maharashtra' :
-        shp_file = d + '\\maps\\maharashtra\\maharashtra.shp'
+        shp_file = d + '/maps/maharashtra/maharashtra.shp'
     else :
         raise NameError("Please enter one of 'india' or 'maharashtra' as input for kind.")
 
@@ -292,4 +292,5 @@ def interactivePlot(kind, df_data) :
     
     #p.add_layout(color_bar, 'left')
     #output_file("test.html")
+    export_png(p, "map.png", height = 1960, width = 1960)
     show(p)
