@@ -13,8 +13,8 @@ from os import getcwd
 import Levenshtein
 from bokeh.io import show, output_file, export_png
 from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, LinearColorMapper
-#from bokeh.models import ColorBar, BasicTicker, AdaptiveTicker
-#from bokeh.palettes import YlOrRd, RdYlBu, Inferno, Oranges
+from bokeh.models import ColorBar, BasicTicker#, AdaptiveTicker
+from bokeh.palettes import RdYlBu
 from bokeh.plotting import figure, save
 from bokeh.resources import CDN
 from numpy import nan
@@ -269,7 +269,7 @@ def interactivePlot(kind, df_data) :
 
     #custom_colors = ['#f2f2f2', '#fee5d9', '#fcbba1', '#fc9272', '#fb6a4a', '#de2d26']
     
-    color_mapper = LinearColorMapper(palette="Greys256", low = min(data), high = max(data))    
+    color_mapper = LinearColorMapper(palette="Viridis256", low = min(data), high = max(data))    
     source = ColumnDataSource(data=dict(
         x=obj_x, y=obj_y,
         name=obj_name, rate=data,
@@ -280,7 +280,7 @@ def interactivePlot(kind, df_data) :
         title=dfd.columns[1], tools=TOOLS,
         x_axis_location=None, y_axis_location=None
     )
-    #color_bar = ColorBar(color_mapper=color_mapper, label_standoff=12, border_line_color=None, ticker = AdaptiveTicker(), location=(0,0))
+    color_bar = ColorBar(color_mapper=color_mapper, label_standoff=12, border_line_color=None, ticker = BasicTicker(), location=(0,0))
     p.grid.grid_line_color = None
     p.patches('x', 'y', source=source,
             fill_color={'field': 'rate', 'transform': color_mapper},
@@ -290,7 +290,7 @@ def interactivePlot(kind, df_data) :
     hover.point_policy = "follow_mouse"
     hover.tooltips = [(plotkey, "@name"),(dfd.columns[1], "@rate")]
     
-    #p.add_layout(color_bar, 'left')
+    p.add_layout(color_bar, 'right')
     #output_file("test.html")
-    export_png(p, "map.png", height = 1960, width = 1960)
+    export_png(p, "map.png")#, height = 1960, width = 1960)
     show(p)
