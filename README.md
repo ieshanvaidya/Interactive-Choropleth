@@ -1,7 +1,7 @@
 # Interactive-Choropleth
 
-##### Example Plot : Population of India (Census 2011) [Not interactive due to markdown limitations]
-![Plot](https://github.com/ieshanvaidya/Interactive-Choropleth/blob/master/choropleth/map.png)
+##### Heatmap Animation of State Level Data
+![Example](https://github.com/ieshanvaidya/Interactive-Choropleth/blob/master/example.gif)
 
 ### Reference Articles
 1. [Data Dive Static and Interactive Plots](https://data-dive.com/cologne-bike-rentals-interactive-map-bokeh)
